@@ -9,6 +9,7 @@
   let mobile = $state('');
   let otp = $state('');
   let otpError = $state('');
+  let isSubmitting = $state(false);
   let selectedRole = $state<UserRole>(USER_ROLES.AGENT);
 
   let fullName = $state('');
@@ -49,33 +50,53 @@
     step = 'role_select';
   }
 
-  function completeOnboarding(e: SubmitEvent) {
+  async function completeOnboarding(e: SubmitEvent) {
     e.preventDefault();
-    if (!agreedTermsAnd18) return;
+    if (!agreedTermsAnd18 || isSubmitting) return;
+    isSubmitting = true;
+    otpError = '';
 
     const isEnterpriseAutoTrigger =
       selectedRole === USER_ROLES.MANAGED_SPACE_TENANT && seatsCategory === 'gt_20';
 
-    session.setUser({
-      userId: `USR-${Date.now()}`,
-      role: selectedRole,
-      accountStatus: 'active',
-      name: fullName,
-      companyName: companyName || undefined,
-      mobile: `${countryCode}${mobile}`,
-      email: email || undefined,
-      operatingCity: city,
-      isEnterprise: isEnterpriseAutoTrigger,
-      isSubscribedAgent: false,
-      subscribedCities: [],
-      subscribedAssetClasses: selectedAssetClasses,
-      canPostManagedSpace:
-        selectedRole === USER_ROLES.MANAGED_SPACE_TENANT ||
-        (selectedRole === USER_ROLES.OFFICE_TENANT && alsoInterestedInManagedSpace),
-      contactUnlocksUsed: 0,
-      propertiesPostedCount: 0,
-      demandsPostedCount: selectedRole === USER_ROLES.AGENT ? 0 : 1
-    });
+    try {
+      await session.authenticateWithBackend({
+        mobile,
+        otp,
+        role: selectedRole,
+        name: fullName,
+        companyName: companyName || undefined,
+        operatingCity: city,
+        isEnterprise: isEnterpriseAutoTrigger,
+        selectedAssetClasses,
+        canPostManagedSpace:
+          selectedRole === USER_ROLES.MANAGED_SPACE_TENANT ||
+          (selectedRole === USER_ROLES.OFFICE_TENANT && alsoInterestedInManagedSpace)
+      });
+    } catch (err: any) {
+      otpError = err.message || 'Authentication failed';
+    } finally {
+      isSubmitting = false;
+    }
+  }
+
+  async function loginInternalDemo() {
+    isSubmitting = true;
+    try {
+      await session.authenticateWithBackend({
+        mobile,
+        otp,
+        role: USER_ROLES.KD_TEAM,
+        name: 'Himanshu (REP Team)',
+        operatingCity: 'Bengaluru',
+        canPostManagedSpace: true,
+        selectedAssetClasses: ['office', 'retail', 'fnb', 'managed_space']
+      });
+    } catch (err: any) {
+      otpError = err.message;
+    } finally {
+      isSubmitting = false;
+    }
   }
 </script>
 
@@ -92,6 +113,8 @@
         <button type="button" class="close-x" onclick={() => (session.isAuthModalOpen = false)}>✕</button>
       </header>
 
+      {#if otpError}<p class="error-msg">{otpError}</p>{/if}
+
       {#if step === 'mobile'}
         <div class="form-stack">
           <label class="field-label">Mobile Number *</label>
@@ -99,7 +122,6 @@
             <select bind:value={countryCode}><option value="+91">+91 (IN)</option><option value="+971">+971 (AE)</option></select>
             <input type="tel" maxlength="10" placeholder="Enter 10-digit mobile number" bind:value={mobile} />
           </div>
-          {#if otpError}<p class="error-msg">{otpError}</p>{/if}
           <button type="button" class="btn-submit" onclick={sendOtp}>Continue</button>
         </div>
 
@@ -107,7 +129,6 @@
         <div class="form-stack">
           <p class="hint">Enter any 6-digit OTP sent to <strong>{countryCode} {mobile}</strong></p>
           <input type="text" maxlength="6" placeholder="123456" bind:value={otp} class="otp-input" />
-          {#if otpError}<p class="error-msg">{otpError}</p>{/if}
           <button type="button" class="btn-submit" onclick={verifyOtp}>Verify OTP</button>
         </div>
 
@@ -130,15 +151,7 @@
             <button type="button" onclick={() => { selectedRole = USER_ROLES.MANAGED_SPACE_TENANT; step = 'onboarding_form'; }}>
               <strong>Managed Space Tenant</strong><span>Seat-based coworking / managed office</span>
             </button>
-            <button type="button" onclick={() => {
-              session.setUser({
-                userId: 'REP-TEAM-01', role: USER_ROLES.KD_TEAM, accountStatus: 'active',
-                name: 'Himanshu (REP Team)', mobile: `${countryCode}${mobile}`,
-                isEnterprise: false, isSubscribedAgent: false, subscribedCities: [],
-                subscribedAssetClasses: ['office', 'retail', 'fnb', 'managed_space'],
-                canPostManagedSpace: true, contactUnlocksUsed: 0, propertiesPostedCount: 14, demandsPostedCount: 9
-              });
-            }}>
+            <button type="button" disabled={isSubmitting} onclick={loginInternalDemo}>
               <strong>Internal Team (REP)</strong><span>Access HTLs &amp; All Demands</span>
             </button>
           </div>
@@ -181,7 +194,9 @@
             <label class="checkbox-row"><input type="checkbox" bind:checked={alsoInterestedInManagedSpace} /><span>Also interested in Managed Office Spaces?</span></label>
           {/if}
           <label class="checkbox-row"><input type="checkbox" required bind:checked={agreedTermsAnd18} /><span>I confirm I am 18+ and accept Terms &amp; Conditions *</span></label>
-          <button type="submit" class="btn-submit">Complete Setup</button>
+          <button type="submit" class="btn-submit" disabled={isSubmitting}>
+            {isSubmitting ? 'Verifying...' : 'Complete Setup'}
+          </button>
         </form>
 
       {:else if step === 'partner_form'}
@@ -227,5 +242,5 @@
   .checkbox-row { display: flex; align-items: flex-start; gap: 0.5rem; font-size: 0.82rem; }
   .checkbox-row input { width: auto; margin-top: 0.2rem; }
   .btn-submit { background: var(--color-primary); color: #fff; border: none; padding: 0.7rem 1rem; border-radius: var(--radius-sm); font-weight: 600; font-size: 0.92rem; }
-  .error-msg { margin: 0; color: var(--color-alert-dot); font-size: 0.82rem; font-weight: 600; }
+  .error-msg { margin: 0 0 0.75rem; color: var(--color-alert-dot); font-size: 0.82rem; font-weight: 600; }
 </style>

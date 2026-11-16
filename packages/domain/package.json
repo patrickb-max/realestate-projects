@@ -1,0 +1,8 @@
+{
+  "name": "@reprojects/domain",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "exports": { ".": "./src/index.ts" },
+  "dependencies": { "@reprojects/constants": "*", "@reprojects/types": "*" }
+}

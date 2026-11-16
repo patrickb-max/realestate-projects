@@ -1,0 +1,8 @@
+{
+  "name": "@reprojects/validators",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "exports": { ".": "./src/index.ts" },
+  "dependencies": { "zod": "^3.22.4", "@reprojects/constants": "*" }
+}

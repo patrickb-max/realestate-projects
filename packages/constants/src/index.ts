@@ -20,6 +20,15 @@ export const ASSET_CLASSES = {
 
 export type AssetClass = (typeof ASSET_CLASSES)[keyof typeof ASSET_CLASSES];
 
+export const SUBSCRIPTION_BUNDLES = {
+  RETAIL_FNB: 'retail_fnb',
+  OFFICE: 'office'
+} as const;
+
+export type SubscriptionBundle = (typeof SUBSCRIPTION_BUNDLES)[keyof typeof SUBSCRIPTION_BUNDLES];
+
+export type CityTier = 'metro' | 'non_metro' | 'rest_of_india';
+
 export const TIER_1_HTL_CITIES = [
   'Bengaluru',
   'Hyderabad',
@@ -54,6 +63,14 @@ export const FREE_QUOTAS = {
   MANAGED_SPACE_ENTERPRISE_SEAT_THRESHOLD: 20
 } as const;
 
+export const SLA_CONSTANTS = {
+  BRAND_CONTACT_WORKING_DAYS: 4,
+  BRAND_CONTACT_EXPIRY_HOURS: 72,
+  DEMAND_AUTO_DEACTIVATE_DAYS: 60,
+  SUBSCRIPTION_CYCLE_DAYS: 30,
+  SUBSCRIPTION_GRACE_MONTHS: 3
+} as const;
+
 export const SUBSCRIPTION_PRICING_INR = {
   METRO_SINGLE_BUNDLE: 1000,
   NON_METRO_SINGLE_BUNDLE: 750,
@@ -61,3 +78,13 @@ export const SUBSCRIPTION_PRICING_INR = {
   PAN_INDIA_SINGLE_BUNDLE: 5000,
   GST_RATE: 0.18
 } as const;
+
+export const GENERIC_EMAIL_DOMAINS = [
+  'gmail.com',
+  'yahoo.com',
+  'yahoo.co.in',
+  'hotmail.com',
+  'outlook.com',
+  'rediffmail.com',
+  'icloud.com'
+] as const;

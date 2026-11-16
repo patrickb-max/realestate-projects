@@ -11,7 +11,9 @@
   ],
   "scripts": {
     "dev:web": "npm run dev --workspace=@reprojects/web-ui",
-    "build:web": "npm run build --workspace=@reprojects/web-ui"
+    "build:web": "npm run build --workspace=@reprojects/web-ui",
+    "dev:core": "npm run dev --workspace=@reprojects/core-services",
+    "dev:admin": "npm run dev --workspace=@reprojects/admin-services"
   },
   "engines": {
     "node": ">=20.11.0",

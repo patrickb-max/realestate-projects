@@ -1,4 +1,5 @@
 import { USER_ROLES, type AssetClass, type UserRole } from '@reprojects/constants';
+import { coreApi } from '$lib/api/client';
 
 export interface UserProfile {
   userId: string;
@@ -17,12 +18,12 @@ export interface UserProfile {
   contactUnlocksUsed: number;
   propertiesPostedCount: number;
   demandsPostedCount: number;
-  assignedPoc?: { name: string; email: string; mobile: string };
 }
 
 class SessionStore {
   user = $state<UserProfile | null>(null);
-  selectedCity = $state<string>('Bengaluru');
+  token = $state<string | null>(null);
+  selectedCity = $state<string>('Bengaluru'); // Default launch market
   isAuthModalOpen = $state<boolean>(false);
   authInitialMode = $state<'login' | 'developer_enquiry' | 'operator_enquiry'>('login');
   pendingActionLabel = $state<string | null>(null);
@@ -71,13 +72,59 @@ class SessionStore {
     this.isAuthModalOpen = true;
   }
 
-  setUser(profile: UserProfile) {
+  setUser(profile: UserProfile, jwtToken: string | null = null) {
     this.user = profile;
+    if (jwtToken) this.token = jwtToken;
     this.isAuthModalOpen = false;
     this.pendingActionLabel = null;
   }
 
-  activateAgentSubscription(cities: string[], assetClasses: AssetClass[]) {
+  async authenticateWithBackend(payload: {
+    mobile: string;
+    otp: string;
+    role: UserRole;
+    name: string;
+    companyName?: string;
+    operatingCity?: string;
+    canPostManagedSpace?: boolean;
+    isEnterprise?: boolean;
+    selectedAssetClasses?: AssetClass[];
+  }) {
+    const res = await coreApi<{ token: string; user: any }>('/api/v2/auth/verify-otp', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+
+    this.setUser(
+      {
+        userId: res.user._id,
+        role: res.user.role,
+        accountStatus: res.user.accountStatus || 'active',
+        name: res.user.name || payload.name,
+        companyName: res.user.companyName || payload.companyName,
+        mobile: res.user.mobile,
+        operatingCity: res.user.operatingCity || payload.operatingCity,
+        isEnterprise: Boolean(res.user.isEnterprise || payload.isEnterprise),
+        isSubscribedAgent: Boolean(res.user.isSubscribedAgent),
+        subscribedCities: (res.user.subscribedCities || []).map((c: any) => c.city),
+        subscribedAssetClasses: payload.selectedAssetClasses || ['office'],
+        canPostManagedSpace: Boolean(payload.canPostManagedSpace),
+        contactUnlocksUsed: res.user.contactUnlocksUsed || 0,
+        propertiesPostedCount: res.user.propertiesPostedCount || 0,
+        demandsPostedCount: res.user.demandsPostedCount || 0
+      },
+      res.token
+    );
+  }
+
+  async activateAgentSubscription(cities: string[], assetClasses: AssetClass[], subtotalInr: number) {
+    if (this.token) {
+      await coreApi(
+        '/api/v2/subscriptions/activate',
+        { method: 'POST', body: JSON.stringify({ cities, subtotalInr }) },
+        this.token
+      );
+    }
     if (!this.user) return;
     this.user = {
       ...this.user,
@@ -94,6 +141,7 @@ class SessionStore {
 
   logout() {
     this.user = null;
+    this.token = null;
   }
 }
 
