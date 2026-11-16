@@ -1,0 +1,14 @@
+{
+  "name": "@reprojects/design-system",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./tokens.css": "./src/tokens/tokens.css",
+    "./Badge.svelte": "./src/components/Badge.svelte",
+    "./SlideDrawer.svelte": "./src/components/SlideDrawer.svelte"
+  },
+  "peerDependencies": {
+    "svelte": "^5.0.0"
+  }
+}
