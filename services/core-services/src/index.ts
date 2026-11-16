@@ -309,7 +309,11 @@ async function startServer() {
   try {
     await mongoose.connect(mongoUri, { serverSelectionTimeoutMS: 2500 });
     console.log('[core-services] Connected to MongoDB:', mongoUri);
-  } catch {
+  } catch (err: any) {
+    if (process.env.NODE_ENV === "production") {
+      console.error("[db] MongoDB connection failed:", err.message);
+      process.exit(1);
+    }
     const { MongoMemoryServer } = await import('mongodb-memory-server');
     const memServer = await MongoMemoryServer.create();
     await mongoose.connect(memServer.getUri());

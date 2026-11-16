@@ -1,0 +1,29 @@
+services:
+  core-services:
+    build:
+      context: .
+      dockerfile: services/core-services/Dockerfile
+    container_name: reprojects-core-api
+    ports:
+      - "3000:3000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      MONGO_URI: mongodb://host.docker.internal:27017/realestate_projects_v2
+      JWT_SECRET: local-docker-jwt-secret
+
+  admin-services:
+    build:
+      context: .
+      dockerfile: services/admin-services/Dockerfile
+    container_name: reprojects-admin-api
+    ports:
+      - "3002:3002"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      NODE_ENV: production
+      PORT: 3002
+      MONGO_URI: mongodb://host.docker.internal:27017/realestate_projects_v2

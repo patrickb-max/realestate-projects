@@ -1,0 +1,12 @@
+node_modules
+**/node_modules
+.git
+.gitignore
+.env
+.env.*
+apps/web-ui/.svelte-kit
+apps/web-ui/build
+apps/admin-ui/.svelte-kit
+apps/admin-ui/build
+*.log
+.DS_Store
