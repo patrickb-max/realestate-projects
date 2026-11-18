@@ -64,4 +64,30 @@ jobs:
         run: |
           echo "=== INSTALLING DEPENDIENCIES ==="
           npm ci
-    
+      # Step 4: Compile the SvelteKit web UI into static assets for deployment.
+      - name: Build Web UI
+        env:
+          VITE_CORE_API_URL: ${{ secrets.PROD_CORE_API_URL }} # Injects the production API URL into the build process.
+        run: |
+          echo "=== BUILDING @repoprojects/WEB UI ==="   
+          npm run build --workspace=@repoprojects/web-ui
+          echo "=== VERIFYING COMPILIED BUILD ARTIFACTS ==="
+          ls -lh apps/web-ui/build   
+
+      # Step 5: Exchange Github OIDC token for AWS temporary AWS IAM credentials to allow deployment to S3 and CloudFront.
+      - name: Configure AWS Credentials (OIDC Handshake)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }} # The AWS IAM role to assume
+          aws-region: ${{ env.AWS_REGION }} # The AWS region for the S3 bucket and CloudFront distribution.
+
+      # Step 6: Verify which AWS I AM role is currently assumed and the AWS account ID.
+      - name: Log Assumed AWS Identity
+        run: |
+          echo "=== VERIFYING ASSUMED AWS OIDC IDENTITY ==="
+          aws sts get-caller-identity
+
+      # Step 7: Upload hashed JS/CSS assets to S3 with long-term  ( 1-year browser cache header ) caching headers. This is the first pass of the deployment. 
+      - name: Deploy to S3 (pass 1 - Immutable Assets)
+        run: |
+          echo "=== PASS 1: SYNCING HASHED ASSETS TO S3 ==="
