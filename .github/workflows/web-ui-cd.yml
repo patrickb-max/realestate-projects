@@ -26,7 +26,7 @@ permissions:
 # 4. GLOBAL ENVIRONMENT VARIABLES: These are available to all jobs and steps in the workflow.
 # MAPS Github secrets to environment variables for use in the workflow.
 env: 
-  AWS REGION: ${{ secrets.AWS_REGION }}
+  AWS_REGION: ${{ secrets.AWS_REGION }}
   S3_BUCKET_WEB: ${{ secrets.S3_BUCKET_WEB }}
   CLOUDFRONT_WEB_ID: ${{ secrets.CLOUDFRONT_WEB_ID }}
 
