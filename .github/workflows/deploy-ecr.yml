@@ -1,0 +1,59 @@
+name: Build and Push to ECR
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'services/**'
+      - 'database/**'
+      - 'packages/**'
+      - '.github/workflows/**'
+
+env:
+  AWS_REGION: ap-south-2
+  ECR_REGISTRY: 551897326491.dkr.ecr.ap-south-2.amazonaws.com
+  ROLE_ARN: arn:aws:iam::551897326491:role/GitHubActionsECRRole
+
+# Required for OIDC
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and Push Core Services
+        run: |
+          IMAGE_TAG=${{ github.sha }}
+          REPO=$ECR_REGISTRY/reprojects/core-services
+          docker build -f services/core-services/Dockerfile -t $REPO:latest -t $REPO:$IMAGE_TAG .
+          docker push -a $REPO
+
+      - name: Build and Push Admin Services
+        run: |
+          IMAGE_TAG=${{ github.sha }}
+          REPO=$ECR_REGISTRY/reprojects/admin-services
+          docker build -f services/admin-services/Dockerfile -t $REPO:latest -t $REPO:$IMAGE_TAG .
+          docker push -a $REPO
+
+      - name: Build and Push PDF Renderer
+        run: |
+          IMAGE_TAG=${{ github.sha }}
+          REPO=$ECR_REGISTRY/reprojects/pdf-renderer
+          docker build -f services/pdf-renderer/Dockerfile -t $REPO:latest -t $REPO:$IMAGE_TAG .
+          docker push -a $REPO
