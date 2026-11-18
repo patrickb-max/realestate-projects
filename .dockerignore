@@ -10,3 +10,19 @@ apps/admin-ui/.svelte-kit
 apps/admin-ui/build
 *.log
 .DS_Store
+
+
+# Ignore local dependencies (Docker will run a clean 'npm ci' inside Linux)
+node_modules
+**/node_modules
+
+# Ignore previous local build outputs
+**/build
+**/.svelte-kit
+**/dist
+
+# Ignore Git history and environment secrets
+.git
+.github
+.env
+.env.*
