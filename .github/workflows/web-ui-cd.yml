@@ -58,4 +58,10 @@ jobs:
           echo "Target S3 Bucket: $S3_BUCKET_WEB"
           echo "Node Version: $(node -v)"
           echo "NPM Version: $(npm -v)"
-          
+    
+      # step 4: Clean install exact dependency versions from package-lock.json 
+      - name: Install Dependencies
+        run: |
+          echo "=== INSTALLING DEPENDIENCIES ==="
+          npm ci
+    
