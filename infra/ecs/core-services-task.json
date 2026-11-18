@@ -1,0 +1,41 @@
+{
+  "family": "reprojects-core-services",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "256",
+  "memory": "512",
+  "executionRoleArn": "arn:aws:iam::551897326491:role/ecsTaskExecutionRole",
+  "containerDefinitions": [
+    {
+      "name": "core-services",
+      "image": "551897326491.dkr.ecr.ap-south-2.amazonaws.com/reprojects/core-services:latest",
+      "essential": true,
+      "portMappings": [
+        {
+          "name": "http",
+          "containerPort": 3000,
+          "protocol": "tcp",
+          "appProtocol": "http"
+        }
+      ],
+      "environment": [
+        { "name": "NODE_ENV", "value": "production" },
+        { "name": "PORT", "value": "3000" },
+        { "name": "PDF_SERVICE_URL", "value": "http://pdf-renderer:3004" }
+      ],
+      "secrets": [
+        { "name": "MONGO_URI", "valueFrom": "arn:aws:ssm:ap-south-2:551897326491:parameter/reprojects/prod/MONGO_URI" },
+        { "name": "ADMIN_JWT_SECRET", "valueFrom": "arn:aws:ssm:ap-south-2:551897326491:parameter/reprojects/prod/ADMIN_JWT_SECRET" },
+        { "name": "PDF_INTERNAL_SECRET", "valueFrom": "arn:aws:ssm:ap-south-2:551897326491:parameter/reprojects/prod/PDF_INTERNAL_SECRET" }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/reprojects-core-services",
+          "awslogs-region": "ap-south-2",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
+    }
+  ]
+}
