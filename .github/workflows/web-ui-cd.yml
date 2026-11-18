@@ -111,7 +111,7 @@ jobs:
       - name: Log S3 Bucket Contents
         run: |
           echo "=== VERIFYING FILES IN S3 BUCKET ==="
-          aws s3 ls s3://$S3_BUCKET_WEB --recursive --human-readable --summarize"
+          aws s3 ls s3://$S3_BUCKET_WEB --recursive --human-readable --summarize
 
      # Step 10: Clear CloudFront cache to ensure users get the latest version of the web UI. This step is conditional and only runs if a CloudFront distribution ID is provided.
       - name: Invalidate CloudFront Cache
