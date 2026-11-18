@@ -1,0 +1,61 @@
+# 1. WORKFLOW FILE NAME: Appeears in the left sidebar of my GitHub Actions tab. It is also the name of the workflow in the Actions tab.
+name: Deploy Web UI (User Portal)
+
+# 2. TRIGGERS: Defines what events start this Pipeline.
+on:
+  # Allows you to run the workflow manually from the GitHub Actions UI.
+  workflow_dispatch:
+  # Runs automatically when code is pushed to the 'main' branch.
+  push:
+    branches:
+      - main
+    # Path filter: Only runs if files relevant to the web UI were changed.
+    paths:
+      - 'apps/web-ui/**'
+      - 'apps/design-system/**'
+      - 'packages/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/web-ui-cd.yml'
+
+# 3. PERMISSIONS: Required for Passwordless OIDC authentication with AWS.
+permissions:
+  id-token: write # Allows GitHub to generate a short-lived OIDC JWT token for AWS authentication.
+  contents: read # Allows GitHub to read the repository contents (code, files, etc..,).
+
+# 4. GLOBAL ENVIRONMENT VARIABLES: These are available to all jobs and steps in the workflow.
+# MAPS Github secrets to environment variables for use in the workflow.
+env: 
+  AWS REGION: ${{ secrets.AWS_REGION }}
+  S3_BUCKET_WEB: ${{ secrets.S3_BUCKET_WEB }}
+  CLOUDFRONT_WEB_ID: ${{ secrets.CLOUDFRONT_WEB_ID }}
+
+# 5. JOBS: Defines the individual jobs that make up the workflow. Each job runs in its own virtual environment.
+jobs:
+  deploy-web-ui:
+    name: Build & Deploy Web UI
+    runs-on: ubuntu-latest # Specifies the virtual environment for the job.
+
+    steps:
+      # step 1: Checkout the repository to access the code.
+      - name: Checkout Repository 
+        uses: actions/checkout@v4
+      
+      # step 2: Setup Node.js environment for building the web UI.
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm' # Caches npm dependencies for faster builds.
+    
+      # step 3: Log Environment info before installing dependencies.
+      - name: Log Runner Environment 
+        run: |
+          echo "=== RUNNER & GIT DIAGNOSTICS ==="
+          echo "Commit SHA: $GITHUB_SHA"
+          echo "Branch Ref: $GITHUB_REF"
+          echo "Target Region: $AWS_REGION"
+          echo "Target S3 Bucket: $S3_BUCKET_WEB"
+          echo "Node Version: $(node -v)"
+          echo "NPM Version: $(npm -v)"
+          
