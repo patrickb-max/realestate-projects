@@ -4,9 +4,9 @@ on:
   workflow_run:
     workflows: ["Build and Push to ECR"]
     types: [completed]
-    branches: [main]
+    branches: [main, feat/ecs-fargate-infra]
   push:
-    branches: [main]
+    branches: [main, feat/ecs-fargate-infra]
     paths:
       - 'infra/ecs/**'
       - '.github/workflows/deploy-ecs.yml'
