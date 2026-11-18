@@ -64,13 +64,14 @@ jobs:
         run: |
           echo "=== INSTALLING DEPENDIENCIES ==="
           npm ci
+
       # Step 4: Compile the SvelteKit web UI into static assets for deployment.
       - name: Build Web UI
         env:
           VITE_CORE_API_URL: ${{ secrets.PROD_CORE_API_URL }} # Injects the production API URL into the build process.
         run: |
-          echo "=== BUILDING @repoprojects/WEB UI ==="   
-          npm run build --workspace=@repoprojects/web-ui
+          echo "=== BUILDING @reprojects/WEB UI ==="   
+          npm run build --workspace=@reprojects/web-ui
           echo "=== VERIFYING COMPILIED BUILD ARTIFACTS ==="
           ls -lh apps/web-ui/build   
 
@@ -91,3 +92,32 @@ jobs:
       - name: Deploy to S3 (pass 1 - Immutable Assets)
         run: |
           echo "=== PASS 1: SYNCING HASHED ASSETS TO S3 ==="
+          aws s3 sync apps/web-ui/build s3://$S3_BUCKET_WEB \
+            --delete \
+            --exclude "index.html" \
+            --cache-control "public, max-age=31536000, immutable"
+     
+          
+      # Step 8: Upload the HTML entrypoint to S3 with no-cache headers. This is the second pass of the deployment.
+      # So users always get the latest release of the web UI when they visit the site.
+      - name: Deploy to s3 (pass 2 -HTML Entrypoint)
+        run: |
+          echo " === PASS 2: UPLOADING HTML (NO-CACHE) ENTRYPOINT TO S3 ==="
+          aws s3 cp apps/web-ui/build/index.html s3://$S3_BUCKET_WEB/index.html \
+            --cache-control "no-cache, no-store, must-revalidate" \
+            --content-type "text/html"
+
+     # Step 9: List uploaded S3 objects in the workflow logs for verification.
+      - name: Log S3 Bucket Contents
+        run: |
+          echo "=== VERIFYING FILES IN S3 BUCKET ==="
+          aws s3 ls s3://$S3_BUCKET_WEB --recursive --human-readable --summarize"
+
+     # Step 10: Clear CloudFront cache to ensure users get the latest version of the web UI. This step is conditional and only runs if a CloudFront distribution ID is provided.
+      - name: Invalidate CloudFront Cache
+        if: env.CLOUDFRONT_WEB_ID != ''
+        run: |
+          echo "=== INVALIDATING CLOUDFRONT CACHE ==="
+          aws cloudfront create-invalidation \
+            --distribution-id $CLOUDFRONT_WEB_ID \
+            --paths "/*"
