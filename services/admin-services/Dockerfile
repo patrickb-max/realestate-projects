@@ -1,24 +1,24 @@
-# Official Node.js 20 base image
-FROM node:20
-
-# Set working directory inside the container
+FROM node:20 AS builder
 WORKDIR /app
-
-# Copy package manifests first to leverage Docker build cache
 COPY package.json package-lock.json tsconfig.json ./
 COPY packages/ ./packages/
+COPY database/package.json ./database/
 COPY services/admin-services/package.json ./services/admin-services/
-
-# Install exact dependencies from lockfile
 RUN npm ci
-
-# Copy remaining source code
 COPY . .
+RUN npm run build --workspace=services/admin-services
 
-# Set production environment and document service port
+FROM node:20-slim AS runner
+WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3002
+COPY --chown=node:node package.json package-lock.json tsconfig.json ./
+COPY --chown=node:node packages/ ./packages/
+COPY --chown=node:node database/package.json ./database/
+COPY --chown=node:node services/admin-services/package.json ./services/admin-services/
+RUN npm ci --omit=dev && npm cache clean --force
+COPY --chown=node:node database/src ./database/src
+COPY --chown=node:node services/admin-services/src ./services/admin-services/src
+USER node
 EXPOSE 3002
-
-# Run TypeScript entrypoint directly via tsx
 CMD ["./node_modules/.bin/tsx", "services/admin-services/src/index.ts"]
