@@ -1,0 +1,115 @@
+# 1. WORKFLOW FILE NAME: Appears in the left sidebar of your GitHub Actions tab.
+name: Deploy Admin UI (Control Panel)
+
+# 2. TRIGGERS: Defines what events start this pipeline.
+on:
+  # Allows you to run the workflow manually from the GitHub Actions UI.
+  workflow_dispatch:
+
+  # Runs automatically when code is pushed to the 'main' branch.
+  push:
+    branches:
+      - main
+    # Path filter: Only runs if files relevant to the admin UI were changed.
+    paths:
+      - 'apps/admin-ui/**'
+      - 'apps/design-system/**'
+      - 'packages/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/admin-ui-cd.yml'
+
+# 3. PERMISSIONS: Required for Passwordless OIDC authentication with AWS.
+permissions:
+  id-token: write # Allows GitHub to generate a short-lived OIDC JWT token for AWS authentication.
+  contents: read  # Allows GitHub to read the repository contents.
+
+# 4. GLOBAL ENVIRONMENT VARIABLES: Maps GitHub secrets to environment variables.
+env:
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+  S3_BUCKET_ADMIN: ${{ secrets.S3_BUCKET_ADMIN }}
+  CLOUDFRONT_ADMIN_ID: ${{ secrets.CLOUDFRONT_ADMIN_ID }}
+
+# 5. JOBS: Defines the individual jobs that make up the workflow.
+jobs:
+  deploy-admin-ui:
+    name: Build & Deploy Admin UI
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Checkout the repository to access the code.
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # Step 2: Setup Node.js environment for building the admin UI.
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      # Step 3: Log environment info before installing dependencies.
+      - name: Log Runner Environment
+        run: |
+          echo "=== RUNNER & GIT DIAGNOSTICS ==="
+          echo "Commit SHA: $GITHUB_SHA"
+          echo "Branch Ref: $GITHUB_REF"
+          echo "Target Region: $AWS_REGION"
+          echo "Target S3 Bucket: $S3_BUCKET_ADMIN"
+          echo "Node Version: $(node -v)"
+          echo "NPM Version: $(npm -v)"
+
+      # Step 4: Install dependencies using npm ci for a clean install.
+      - name: Install Dependencies
+        run: npm ci
+
+      # Step 5: Build the Admin UI with environment variables for production API URL.
+      - name: Build Admin UI
+        env:
+          VITE_ADMIN_API_URL: ${{ secrets.PROD_ADMIN_API_URL }}
+        run: |
+          npm run build --workspace=@reprojects/admin-ui
+          echo "=== VERIFYING COMPILED ADMIN BUILD ARTIFACTS ==="
+          ls -lh apps/admin-ui/build
+
+      # Step 6: Configure AWS credentials using OIDC handshake for secure deployment.
+      - name: Configure AWS Credentials (OIDC Handshake)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      # Step 7: Verify assumed AWS IAM role identity.
+      - name: Log Assumed AWS Identity
+        run: |
+          echo "=== VERIFYING AWS OIDC IDENTITY ==="
+          aws sts get-caller-identity
+
+      # Step 8: Deploy immutable assets to S3, excluding index.html and setting cache control.
+      - name: Deploy to S3 (Pass 1 - Immutable Assets)
+        run: |
+          aws s3 sync apps/admin-ui/build s3://$S3_BUCKET_ADMIN \
+            --delete \
+            --exclude "index.html" \
+            --cache-control "public, max-age=31536000, immutable"
+
+      # Step 9: Deploy the HTML entry point to S3 with no caching for immediate updates.
+      - name: Deploy to S3 (Pass 2 - HTML Entrypoint)
+        run: |
+          aws s3 cp apps/admin-ui/build/index.html s3://$S3_BUCKET_ADMIN/index.html \
+            --cache-control "no-cache, no-store, must-revalidate" \
+            --content-type "text/html"
+
+      # Step 10: List uploaded S3 objects in the workflow logs for verification.
+      - name: Log S3 Bucket Contents
+        run: |
+          echo "=== VERIFYING FILES IN ADMIN S3 BUCKET ==="
+          aws s3 ls s3://$S3_BUCKET_ADMIN/ --recursive --human-readable
+
+      # Step 11: Invalidate CloudFront cache if CLOUDFRONT_ADMIN_ID is set.
+      - name: Invalidate CloudFront Cache
+        if: env.CLOUDFRONT_ADMIN_ID != ''
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id $CLOUDFRONT_ADMIN_ID \
+            --paths "/*"
