@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - feat/aws-ecr-actions
     paths:
       - 'services/**'
       - 'database/**'
