@@ -1,29 +1,24 @@
-# ---- Stage 1: Install Workspace Dependencies ----
-FROM node:20-alpine AS builder
+# Official Node.js 20 base image
+FROM node:20
+
+# Set working directory inside the container
 WORKDIR /app
 
-COPY package.json package-lock.json ./
-COPY packages/constants/package.json ./packages/constants/
+# Copy package manifests first to leverage Docker build cache
+COPY package.json package-lock.json tsconfig.json ./
+COPY packages/ ./packages/
 COPY services/pdf-renderer/package.json ./services/pdf-renderer/
 
-RUN npm ci --omit=dev --workspace=@reprojects/pdf-renderer --include-workspace-root
+# Install exact dependencies from lockfile
+RUN npm ci
 
-# ---- Stage 2: Minimal Production Runtime ----
-FROM node:20-alpine AS runner
-WORKDIR /app
+# Copy remaining source code
+COPY . .
+
+# Set production environment and document service port
 ENV NODE_ENV=production
 ENV PORT=3003
-
-COPY --from=builder /app/node_modules ./node_modules
-COPY package.json ./
-COPY packages/constants ./packages/constants
-COPY services/pdf-renderer ./services/pdf-renderer
-
-USER node
-
 EXPOSE 3003
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD wget -qO- http://127.0.0.1:3003/health || exit 1
-
-CMD ["npm", "run", "start", "--workspace=@reprojects/pdf-renderer"]
+# Run TypeScript entrypoint directly via tsx
+CMD ["./node_modules/.bin/tsx", "services/pdf-renderer/src/index.ts"]
