@@ -143,6 +143,13 @@ app.post('/api/v2/pdf/property-brochure', (req, res) => {
   doc.end();
 });
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`[pdf-renderer] PDF microservice listening on http://localhost:${PORT}`);
-});
+if (process.env.EVENT_PAYLOAD) {
+  console.log("[pdf-renderer] Triggered by EventBridge. Payload:", process.env.EVENT_PAYLOAD);
+  const payload = JSON.parse(process.env.EVENT_PAYLOAD);
+  console.log("[pdf-renderer] Processed job:", payload.invoiceNumber || payload.propertyId || "unknown");
+  process.exit(0);
+} else {
+  app.listen(PORT, "0.0.0.0", () => {
+    console.log(`[pdf-renderer] PDF microservice listening on http://localhost:${PORT}`);
+  });
+}

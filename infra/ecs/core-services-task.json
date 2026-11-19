@@ -1,7 +1,9 @@
 {
   "family": "reprojects-core-services",
   "networkMode": "awsvpc",
-  "requiresCompatibilities": ["FARGATE"],
+  "requiresCompatibilities": [
+    "FARGATE"
+  ],
   "cpu": "256",
   "memory": "512",
   "executionRoleArn": "arn:aws:iam::551897326491:role/ecsTaskExecutionRole",
@@ -19,14 +21,40 @@
         }
       ],
       "environment": [
-        { "name": "NODE_ENV", "value": "production" },
-        { "name": "PORT", "value": "3000" },
-        { "name": "PDF_SERVICE_URL", "value": "http://pdf-renderer:3004" }
+        {
+          "name": "NODE_ENV",
+          "value": "production"
+        },
+        {
+          "name": "PORT",
+          "value": "3000"
+        },
+        {
+          "name": "PDF_SERVICE_URL",
+          "value": "http://pdf-renderer:3004"
+        },
+        {
+          "name": "USE_EVENTBRIDGE",
+          "value": "true"
+        },
+        {
+          "name": "EVENT_BUS_NAME",
+          "value": "reprojects-events"
+        }
       ],
       "secrets": [
-        { "name": "MONGO_URI", "valueFrom": "arn:aws:ssm:ap-south-2:551897326491:parameter/reprojects/prod/MONGO_URI" },
-        { "name": "ADMIN_JWT_SECRET", "valueFrom": "arn:aws:ssm:ap-south-2:551897326491:parameter/reprojects/prod/ADMIN_JWT_SECRET" },
-        { "name": "PDF_INTERNAL_SECRET", "valueFrom": "arn:aws:ssm:ap-south-2:551897326491:parameter/reprojects/prod/PDF_INTERNAL_SECRET" }
+        {
+          "name": "MONGO_URI",
+          "valueFrom": "arn:aws:ssm:ap-south-2:551897326491:parameter/reprojects/prod/MONGO_URI"
+        },
+        {
+          "name": "ADMIN_JWT_SECRET",
+          "valueFrom": "arn:aws:ssm:ap-south-2:551897326491:parameter/reprojects/prod/ADMIN_JWT_SECRET"
+        },
+        {
+          "name": "PDF_INTERNAL_SECRET",
+          "valueFrom": "arn:aws:ssm:ap-south-2:551897326491:parameter/reprojects/prod/PDF_INTERNAL_SECRET"
+        }
       ],
       "logConfiguration": {
         "logDriver": "awslogs",
@@ -37,5 +65,6 @@
         }
       }
     }
-  ]
+  ],
+  "taskRoleArn": "arn:aws:iam::551897326491:role/reprojectsTaskRole"
 }

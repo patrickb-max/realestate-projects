@@ -1,0 +1,19 @@
+[
+  {
+    "Id": "pdf-renderer-fargate-target",
+    "Arn": "arn:aws:ecs:ap-south-2:551897326491:cluster/reprojects-prod",
+    "RoleArn": "arn:aws:iam::551897326491:role/EventBridgeECSRole",
+    "EcsParameters": {
+      "TaskDefinitionArn": "arn:aws:ecs:ap-south-2:551897326491:task-definition/reprojects-pdf-renderer:4",
+      "TaskCount": 1,
+      "LaunchType": "FARGATE",
+      "NetworkConfiguration": {
+        "awsvpcConfiguration": {
+          "Subnets": ["subnet-0c062c02886b529e1","subnet-07789f41cb682845a","subnet-01980adf73e33e0b9"],
+          "SecurityGroups": ["sg-04e4c0035d02fbfab"],
+          "AssignPublicIp": "ENABLED"
+        }
+      }
+    }
+  }
+]

@@ -1,4 +1,5 @@
 import express from 'express';
+import { requestPdfGeneration } from "./lib/eventbridge.js";
 import cors from 'cors';
 import helmet from 'helmet';
 import jwt from 'jsonwebtoken';
@@ -284,6 +285,8 @@ app.post('/api/v2/unlock', optionalAuth, requireAuth, async (req, res) => {
 // 8. Activate Agent Subscription (30-Day Cycle)
 app.post('/api/v2/subscriptions/activate', optionalAuth, requireAuth, async (req, res) => {
   const { cities = ['Bengaluru'], subtotalInr = 1000 } = req.body;
+  // Generate invoice via EventBridge or local HTTP
+  await requestPdfGeneration({ endpoint: "invoice", subtotalInr, cities, invoiceNumber: `INV-${Date.now()}` }).catch(err => console.error("PDF Generation failed:", err));
   const gstInr = Math.round(subtotalInr * SUBSCRIPTION_PRICING_INR.GST_RATE);
   const expiresAt = new Date(Date.now() + SLA_CONSTANTS.SUBSCRIPTION_CYCLE_DAYS * 24 * 60 * 60 * 1000);
 

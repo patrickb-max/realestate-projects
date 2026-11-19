@@ -9,6 +9,7 @@
     "start": "tsx src/index.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-eventbridge": "3.1172.0",
     "@reprojects/constants": "*",
     "@reprojects/database": "*",
     "@reprojects/domain": "*",
