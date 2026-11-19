@@ -4,9 +4,9 @@ on:
   workflow_run:
     workflows: ["Build and Push to ECR"]
     types: [completed]
-    branches: [main, feat/ecs-fargate-infra]
+    branches: [main]
   push:
-    branches: [main, feat/ecs-fargate-infra]
+    branches: [main]
     paths:
       - 'infra/ecs/**'
       - '.github/workflows/deploy-ecs.yml'
@@ -35,7 +35,7 @@ jobs:
           role-to-assume: ${{ env.ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Render PDF Renderer Task
+      - name: Render PDF Renderer Task Definition
         id: render-pdf
         uses: aws-actions/amazon-ecs-render-task-definition@v1
         with:
@@ -43,13 +43,8 @@ jobs:
           container-name: pdf-renderer
           image: ${{ env.ECR_REGISTRY }}/reprojects/pdf-renderer:${{ env.IMAGE_TAG }}
 
-      - name: Deploy PDF Renderer
-        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
-        with:
-          task-definition: ${{ steps.render-pdf.outputs.task-definition }}
-          service: pdf-renderer
-          cluster: ${{ env.ECS_CLUSTER }}
-          wait-for-service-stability: true
+      - name: Register Latest PDF Task Revision (EventBridge Target)
+        run: aws ecs register-task-definition --cli-input-json file://${{ steps.render-pdf.outputs.task-definition }}
 
       - name: Render Core Services Task
         id: render-core
